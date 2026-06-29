@@ -1,0 +1,9 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="R.A.W logo">
+  <circle cx="80" cy="80" r="66" fill="#fffaf1" stroke="#d7be8f" stroke-width="3"/>
+  <path d="M33 96c22 21 73 22 96-5" stroke="#d7be8f" stroke-width="3" stroke-linecap="round"/>
+  <path d="M35 66c16-18 44-29 75-22" stroke="#d7be8f" stroke-width="3" stroke-linecap="round"/>
+  <text x="80" y="76" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="34" fill="#7a5c2e" letter-spacing="2">R.A.W</text>
+  <text x="80" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6c745a" letter-spacing="1.2">RESIN ART WORK</text>
+  <path d="M39 43c9 8 14 17 15 29M39 43c10 2 18 5 24 14M39 43c7-5 15-8 24-8" stroke="#c7a669" stroke-width="2" stroke-linecap="round"/>
+  <path d="M121 112c-9-7-14-16-15-28M121 112c-10-1-18-5-25-13M121 112c-8 5-16 8-25 8" stroke="#c7a669" stroke-width="2" stroke-linecap="round"/>
+</svg>
