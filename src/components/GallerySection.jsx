@@ -12,6 +12,18 @@ const GALLERY_COLORS = [
 
 function GalleryPlaceholder({ item, index }) {
   const config = GALLERY_COLORS[index % GALLERY_COLORS.length]
+
+  if (item.image) {
+    return (
+      <div className="gallery-item gallery-item--real" role="img" aria-label={item.label}>
+        <img src={item.image} alt={item.label} className="gallery-item-img" loading="lazy" />
+        <div className="gallery-item-overlay">
+          <span className="gallery-item-label">{item.label}</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="gallery-item"
@@ -92,6 +104,28 @@ export default function GallerySection({ limit = 6 }) {
           letter-spacing: 0.03em;
           z-index: 1;
         }
+        .gallery-item--real { position: relative; }
+        .gallery-item-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.4s ease;
+        }
+        .gallery-item--real:hover .gallery-item-img { transform: scale(1.06); }
+        .gallery-item-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, rgba(45,35,32,0.6) 0%, transparent 50%);
+          display: flex;
+          align-items: flex-end;
+          padding: 16px;
+          z-index: 1;
+          border-radius: inherit;
+          opacity: 0;
+          transition: opacity 0.3s;
+        }
+        .gallery-item--real:hover .gallery-item-overlay { opacity: 1; }
+        .gallery-item-overlay .gallery-item-label { color: white; }
         @media (max-width: 768px) {
           .gallery-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; }
           .gallery-grid > *:nth-child(1),

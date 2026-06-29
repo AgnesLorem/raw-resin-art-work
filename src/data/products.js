@@ -14,7 +14,7 @@ export const products = [
     shortDescription: 'Lót ly resin trong suốt, họa tiết độc đáo. Bảo vệ mặt bàn theo cách đẹp nhất.',
     description:
       'Mỗi chiếc lót ly là một tác phẩm nhỏ được đổ thủ công từ resin epoxy trong suốt. Họa tiết hoa khô, vảy cá, hoặc màu đổ tự do — không có hai chiếc nào giống nhau hoàn toàn. Bề mặt bóng mịn, chống thấm nước, an toàn cho mọi loại ly nóng/lạnh.',
-    images: [],
+    images: ['/assets/products/lot-ly-resin-01.png'],
     materials: ['Epoxy resin', 'Hoa khô / pigment tự nhiên', 'Sợi vàng/bạc trang trí'],
     dimensions: 'Đường kính 9–10 cm, dày ~0.5 cm',
     customizable: true,
@@ -34,7 +34,7 @@ export const products = [
     shortDescription: 'Móc khóa resin mini xinh xắn. Nhỏ gọn, bền, nhiều hình dạng để chọn.',
     description:
       'Móc khóa resin handmade với nhiều hình dạng: trái tim, hoa, gấu, chữ cái đầu tên... Được đổ khuôn silicone tỉ mỉ, phủ lớp UV bảo vệ bề mặt. Là món quà nhỏ gọn, dễ thương phù hợp tặng bạn bè, kỷ niệm sinh nhật, hoặc đính kèm túi xách.',
-    images: [],
+    images: ['/assets/products/moc-khoa-resin-01.png'],
     materials: ['UV resin', 'Khuôn silicone', 'Móc kim loại mạ vàng/bạc', 'Pigment / hoa khô'],
     dimensions: 'Khoảng 3–5 cm (tùy hình dạng)',
     customizable: true,
@@ -54,7 +54,7 @@ export const products = [
     shortDescription: 'Thước resin trong suốt handmade. Vừa là dụng cụ học tập, vừa là vật trang trí góc bàn.',
     description:
       'Thước resin 15–20 cm được đổ tay từ epoxy resin trong suốt, bên trong nhúng hoa khô, glitter, hoặc pigment màu pastel. Vạch đo rõ ràng, bề mặt phẳng mịn. Không chỉ dùng được mà còn khiến bàn học thêm aesthetic. Được lòng học sinh, sinh viên muốn góc bàn đẹp mà không tốn nhiều tiền.',
-    images: [],
+    images: ['/assets/products/thuoc-resin-01.png'],
     materials: ['Epoxy resin trong suốt', 'Hoa khô / glitter', 'Khuôn thước silicone'],
     dimensions: '15 cm hoặc 20 cm, dày ~0.8 cm',
     customizable: true,

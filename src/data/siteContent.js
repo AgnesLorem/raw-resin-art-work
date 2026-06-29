@@ -70,12 +70,12 @@ export const whyUsPoints = [
 ]
 
 export const galleryItems = [
-  { id: 1, label: 'Lót ly hoa khô', category: 'lot-ly' },
-  { id: 2, label: 'Móc khóa trái tim', category: 'moc-khoa' },
-  { id: 3, label: 'Thước pastel', category: 'thuoc' },
-  { id: 4, label: 'Lót ly glitter vàng', category: 'lot-ly' },
-  { id: 5, label: 'Móc khóa chữ cái', category: 'moc-khoa' },
-  { id: 6, label: 'Lót ly ocean wave', category: 'lot-ly' },
-  { id: 7, label: 'Thước hoa cúc', category: 'thuoc' },
-  { id: 8, label: 'Móc khóa gấu', category: 'moc-khoa' },
+  { id: 1, label: 'Lót ly hoa khô', category: 'lot-ly', image: '/assets/products/lot-ly-resin-01.png' },
+  { id: 2, label: 'Móc khóa trái tim', category: 'moc-khoa', image: '/assets/products/moc-khoa-resin-01.png' },
+  { id: 3, label: 'Thước pastel', category: 'thuoc', image: '/assets/products/thuoc-resin-01.png' },
+  { id: 4, label: 'Bộ sưu tập lót ly', category: 'lot-ly', image: '/assets/gallery/lot-ly-collection.png' },
+  { id: 5, label: 'Bộ sưu tập móc khóa', category: 'moc-khoa', image: '/assets/gallery/moc-khoa-collection.png' },
+  { id: 6, label: 'Thước & bookmark resin', category: 'thuoc', image: '/assets/gallery/thuoc-collection.png' },
+  { id: 7, label: 'Flat-lay sản phẩm R.A.W', category: 'lot-ly', image: '/assets/banners/hero-main.png' },
+  { id: 8, label: 'Móc khóa handmade', category: 'moc-khoa', image: '/assets/gallery/moc-khoa-collection.png' },
 ]

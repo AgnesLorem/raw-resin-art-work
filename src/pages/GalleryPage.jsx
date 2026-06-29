@@ -56,6 +56,18 @@ export default function GalleryPage() {
         <div className="gallery-page-grid">
           {filtered.map((item, i) => {
             const config = GALLERY_COLORS[i % GALLERY_COLORS.length]
+
+            if (item.image) {
+              return (
+                <div key={item.id} className="gallery-page-item gallery-page-item--real" role="img" aria-label={item.label}>
+                  <img src={item.image} alt={item.label} className="gallery-page-img" loading="lazy" />
+                  <div className="gallery-page-overlay">
+                    <span className="gallery-page-label">{item.label}</span>
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <div
                 key={item.id}
@@ -111,6 +123,20 @@ export default function GalleryPage() {
           transition: var(--transition);
         }
         .gallery-page-item:hover { transform: scale(1.03); box-shadow: var(--shadow-md); }
+        .gallery-page-item--real { position: relative; overflow: hidden; }
+        .gallery-page-img {
+          width: 100%; height: 100%; object-fit: cover;
+          transition: transform 0.4s ease;
+        }
+        .gallery-page-item--real:hover .gallery-page-img { transform: scale(1.06); }
+        .gallery-page-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(to top, rgba(45,35,32,0.6) 0%, transparent 50%);
+          display: flex; align-items: flex-end; padding: 16px;
+          border-radius: inherit; opacity: 0; transition: opacity 0.3s;
+        }
+        .gallery-page-item--real:hover .gallery-page-overlay { opacity: 1; }
+        .gallery-page-label { font-size: 0.85rem; font-weight: 600; color: white; letter-spacing: 0.03em; }
         @media (max-width: 768px) { .gallery-page-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 480px) { .gallery-page-grid { grid-template-columns: 1fr; } }
       `}</style>
