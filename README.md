@@ -172,6 +172,42 @@ Email: [tainh.ce190387@gmail.com](mailto:tainh.ce190387@gmail.com)
 
 *(Lưu ý: Các liên kết mạng xã hội trong `src/data/siteContent.js` hiện tại đang là `#`, hãy cập nhật link thật khi có)*
 
+## Phase 2 Payment Setup
+
+Để kích hoạt hệ thống thanh toán trực tuyến qua cổng PayOS và lưu trữ đơn hàng trên Cloudflare D1:
+
+### 1. Khởi tạo Database trên Cloudflare
+1. Chạy lệnh tạo database bằng Wrangler CLI (hoặc thao tác trực tiếp trên Cloudflare Web Console):
+   ```bash
+   npx wrangler d1 create raw-db
+   ```
+2. Chạy file schema để thiết lập các bảng dữ liệu:
+   ```bash
+   npx wrangler d1 execute raw-db --file=./db/schema.sql
+   ```
+   *(Thêm `--remote` nếu muốn cập nhật trên môi trường Cloudflare Live).*
+
+### 2. Liên kết D1 Database vào Pages Project
+1. Vào Cloudflare Dashboard -> **Workers & Pages** -> Chọn project Pages của bạn.
+2. Đi tới **Settings** -> **Functions** -> **D1 database bindings**.
+3. Thêm một liên kết (binding) mới:
+   - **Variable name (Binding name):** `DB`
+   - **D1 database:** Chọn database vừa tạo ở Bước 1 (ví dụ `raw-db`).
+
+### 3. Cấu hình Environment Variables (Secrets)
+Trong dashboard của Pages Project, đi tới **Settings** -> **Environment variables** và cấu hình các biến môi trường cho cả môi trường **Production** và **Preview**:
+- `PAYOS_CLIENT_ID`: Lấy từ cổng tích hợp PayOS.
+- `PAYOS_API_KEY`: Lấy từ cổng tích hợp PayOS.
+- `PAYOS_CHECKSUM_KEY`: Lấy từ cổng tích hợp PayOS.
+- `SITE_URL`: `https://raw-resin-art-work.pages.dev` *(Hoặc domain riêng sau khi trỏ thành công).*
+
+### 4. Thiết lập Webhook trên PayOS
+Truy cập vào Dashboard của PayOS, vào mục cấu hình Webhook và điền URL sau để nhận thông báo trạng thái thanh toán từ PayOS:
+```text
+https://raw-resin-art-work.pages.dev/api/webhooks/payos
+```
+*(Nếu sau này bạn gắn custom domain `resinartworkshop.id.vn`, hãy đổi link webhook thành `https://resinartworkshop.id.vn/api/webhooks/payos`).*
+
 ---
 
 ## Roadmap

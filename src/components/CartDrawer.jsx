@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { removeFromCart, updateQuantity, clearCart } from '../services/cartService.js'
 import { formatVnd, calculateProductTotal, calculateCartTotal } from '../services/priceService.js'
 
@@ -84,14 +85,14 @@ export default function CartDrawer({ open, onClose, cartItems, onCartUpdate }) {
                 <span>Tổng cộng</span>
                 <span className="cart-total-price">{formatVnd(total)}</span>
               </div>
-              <a
-                href={`mailto:tainh.ce190387@gmail.com?subject=Đặt hàng từ R.A.W&body=${encodeURIComponent(buildOrderEmail(cartItems, total))}`}
+              <Link
+                to="/checkout"
                 className="btn-primary cart-checkout-btn"
                 id="cart-checkout-btn"
                 onClick={onClose}
               >
-                Gửi yêu cầu đặt hàng ✉
-              </a>
+                Tiến hành thanh toán ➜
+              </Link>
               <button className="cart-clear-btn" onClick={handleClear} id="cart-clear-btn">Xóa giỏ hàng</button>
             </div>
           </>

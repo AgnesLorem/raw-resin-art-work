@@ -8,6 +8,9 @@ import ProductsPage from './pages/ProductsPage.jsx'
 import ProductDetailPage from './pages/ProductDetailPage.jsx'
 import GalleryPage from './pages/GalleryPage.jsx'
 import ContactPage from './pages/ContactPage.jsx'
+import CheckoutPage from './pages/CheckoutPage.jsx'
+import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx'
+import PaymentCancelPage from './pages/PaymentCancelPage.jsx'
 import { getCart } from './services/cartService.js'
 
 export default function App() {
@@ -32,6 +35,9 @@ export default function App() {
           <Route path="/san-pham/:slug" element={<ProductDetailPage onCartUpdate={refreshCart} />} />
           <Route path="/thu-vien" element={<GalleryPage />} />
           <Route path="/lien-he" element={<ContactPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccessPage />} />
+          <Route path="/thanh-toan-bi-huy" element={<PaymentCancelPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

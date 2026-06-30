@@ -27,57 +27,51 @@
 
 ---
 
-## Phase 2 — Product Catalog + Order Form
+## Phase 2 — Checkout & PayOS Integration (Hiện tại ✅)
 
-**Mục tiêu:** Thật sự nhận đơn hàng, không cần backend phức tạp.
+**Mục tiêu:** Nhận đơn hàng tự động thông qua cơ sở dữ liệu Cloudflare D1 và tích hợp thanh toán trực tuyến qua cổng PayOS.
 
 | Thành phần | Giải pháp |
 |---|---|
-| Data | Vẫn `products.js` hoặc JSON file trong repo |
-| Cart | Giữ nguyên localStorage |
-| Checkout | Form điền thông tin → gửi qua Formspree / Web3Forms |
-| Images | Upload thật vào `public/assets/products/` |
-| Payment | Chuyển khoản thủ công + QR code tĩnh (VietQR) |
+| Data | Vẫn `products.js` (local catalog) + `orders` (lưu vào D1) |
+| Cart | localStorage |
+| Checkout | Trang `/checkout` điền thông tin + nút thanh toán |
+| Payment | Cổng thanh toán trực tuyến PayOS (Hosted Checkout) |
+| Database | Cloudflare D1 (SQLite) lưu đơn hàng & thanh toán |
+| Webhook | API webhook `/api/webhooks/payos` tự động cập nhật đơn hàng thành công |
 
 **Upgrade tasks:**
-- Thêm OrderForm component với validation
-- Thêm order confirmation email (via Formspree)
-- Thêm trang `/cam-on` (Order Success)
-- Thêm Google Analytics / Cloudflare Web Analytics
-- SEO: sitemap.xml, robots.txt
-
-**Migration note:**
-- `cartService.js` đã tách biệt → chỉ cần thêm `submitOrder()` function
+- [x] Tạo cấu trúc Cloudflare Pages Functions (`functions/api/`)
+- [x] Xây dựng Database Schema `db/schema.sql` cho D1 SQLite
+- [x] Tích hợp PayOS REST API Helper (với Web Crypto API)
+- [x] Implement API `/api/payments/create`, `/api/payments/status`, `/api/webhooks/payos`
+- [x] Thiết kế giao diện Checkout Page, Payment Success Page, Payment Cancel Page
+- [x] Cập nhật giỏ hàng hỗ trợ checkout trực tuyến và fallback đặt qua Email (mailto)
 
 ---
 
-## Phase 3 — Real Backend (Cloudflare Stack)
+## Phase 3 — Product Management & Cloud Storage
 
-**Mục tiêu:** Tự động hóa đơn hàng, quản lý sản phẩm qua admin, lưu trữ ảnh trên cloud.
+**Mục tiêu:** Quản lý sản phẩm qua API động thay vì file static, lưu trữ hình ảnh trên Cloudflare R2.
 
 | Thành phần | Giải pháp |
 |---|---|
-| Database | Cloudflare D1 (SQLite, free 5GB) |
-| Image Storage | Cloudflare R2 (free 10GB) |
-| API | Cloudflare Pages Functions (`/functions/api/`) |
-| Auth (admin) | Cloudflare Access hoặc simple JWT |
-| Payment | payOS (Việt Nam) hoặc VNPAY |
+| Database | Di chuyển dữ liệu sản phẩm lên Cloudflare D1 |
+| Image Storage | Cloudflare R2 (lưu trữ hình ảnh thực tế) |
+| API | Nâng cấp các API `/api/products` và `/api/products/:slug` |
+| Auth (admin) | Cloudflare Access hoặc Simple JWT để bảo vệ trang admin |
 
-**API endpoints cần build:**
+**API endpoints cần bổ sung:**
 ```
-GET  /api/products          → Danh sách sản phẩm
-GET  /api/products/:slug    → Chi tiết sản phẩm
-POST /api/orders            → Tạo đơn hàng
-GET  /api/orders/:id        → Tra cứu đơn hàng (by token)
-POST /api/payments/create   → Tạo link thanh toán
-POST /api/payments/webhook  → Nhận webhook từ payment gateway
+GET  /api/products          → Danh sách sản phẩm từ D1
+GET  /api/products/:slug    → Chi tiết sản phẩm từ D1
 ```
 
 **Frontend migration:**
-- `src/data/products.js` → `src/services/productService.js` với API calls
-- Component code không cần thay đổi nếu interface giữ nguyên
+- `src/data/products.js` → `src/services/productService.js` chuyển sang call API thực tế từ D1.
+- Component code giữ nguyên giao diện, chỉ cập nhật hàm fetch dữ liệu.
 
-**Database schema:** Xem `DATABASE_SCHEMA_DRAFT.md`
+**Database schema:** Chi tiết bảng sản phẩm nằm trong `docs/DATABASE_SCHEMA_DRAFT.md`
 
 ---
 
