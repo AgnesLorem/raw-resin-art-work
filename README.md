@@ -199,14 +199,13 @@ Trong dashboard của Pages Project, đi tới **Settings** -> **Environment var
 - `PAYOS_CLIENT_ID`: Lấy từ cổng tích hợp PayOS.
 - `PAYOS_API_KEY`: Lấy từ cổng tích hợp PayOS.
 - `PAYOS_CHECKSUM_KEY`: Lấy từ cổng tích hợp PayOS.
-- `SITE_URL`: `https://raw-resin-art-work.pages.dev` *(Hoặc domain riêng sau khi trỏ thành công).*
+- `SITE_URL`: `https://resinartworkshop.id.vn` *(Preview/Fallback: `https://raw-resin-art-work.pages.dev`)*
 
 ### 4. Thiết lập Webhook trên PayOS
 Truy cập vào Dashboard của PayOS, vào mục cấu hình Webhook và điền URL sau để nhận thông báo trạng thái thanh toán từ PayOS:
 ```text
-https://raw-resin-art-work.pages.dev/api/webhooks/payos
+https://resinartworkshop.id.vn/api/webhooks/payos
 ```
-*(Nếu sau này bạn gắn custom domain `resinartworkshop.id.vn`, hãy đổi link webhook thành `https://resinartworkshop.id.vn/api/webhooks/payos`).*
 
 ---
 
