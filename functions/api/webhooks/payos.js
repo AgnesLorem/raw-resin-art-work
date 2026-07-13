@@ -34,6 +34,13 @@ export async function onRequestPost(context) {
 
     // 3. Process payment status
     const { data } = requestBody;
+    if (!data || data.orderCode === undefined || data.orderCode === null || data.amount === undefined || data.amount === null) {
+      return new Response(
+        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Dữ liệu webhook thiếu trường bắt buộc (orderCode/amount).' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const orderCode = data.orderCode;
     const amount = data.amount;
     const isSuccess = requestBody.code === '00'; // PayOS code '00' indicates success
@@ -97,6 +104,19 @@ export async function onRequestPost(context) {
         JSON.stringify(requestBody)
       ).run();
     }
+
+    // Log webhook call (audit logging, safe from leaks)
+    const logData = {
+      event: 'PAYOS_WEBHOOK',
+      orderCode: orderCode,
+      orderId: orderId,
+      amount: amount,
+      paymentStatus: isSuccess ? 'paid' : 'failed',
+      ip: context.request.headers.get('CF-Connecting-IP') || 'unknown',
+      userAgent: context.request.headers.get('User-Agent') || 'unknown',
+      timestamp: new Date().toISOString()
+    };
+    console.log(JSON.stringify(logData));
 
     // 4. Return success response to PayOS
     return new Response(

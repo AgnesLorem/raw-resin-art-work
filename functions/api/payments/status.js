@@ -46,6 +46,18 @@ export async function onRequestGet(context) {
       );
     }
 
+    // Log status check (audit logging, safe from leaks)
+    const logData = {
+      event: 'CHECK_STATUS',
+      orderCode: orderCode,
+      amount: order.total_vnd,
+      paymentStatus: order.payment_status,
+      ip: context.request.headers.get('CF-Connecting-IP') || 'unknown',
+      userAgent: context.request.headers.get('User-Agent') || 'unknown',
+      timestamp: new Date().toISOString()
+    };
+    console.log(JSON.stringify(logData));
+
     return new Response(
       JSON.stringify({
         orderCode: order.order_code,

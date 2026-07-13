@@ -16,7 +16,28 @@ export async function onRequestPost(context) {
       );
     }
 
+    // Protect against overflow payloads
+    if (customer.name.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Họ tên quá dài (tối đa 100 ký tự).' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (customer.phone.length > 30) {
+      return new Response(
+        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Số điện thoại quá dài (tối đa 30 ký tự).' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (customer.email) {
+      if (customer.email.length > 100) {
+        return new Response(
+          JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Địa chỉ email quá dài (tối đa 100 ký tự).' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(customer.email)) {
         return new Response(
@@ -24,6 +45,13 @@ export async function onRequestPost(context) {
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    if (customer.address && customer.address.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Địa chỉ quá dài (tối đa 500 ký tự).' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     if (clientOrderCode && (typeof clientOrderCode !== 'number' || !Number.isInteger(clientOrderCode) || clientOrderCode <= 0)) {
@@ -231,9 +259,16 @@ export async function onRequestPost(context) {
     try {
       payosData = await createPaymentLink(context.env, payosPayload);
     } catch (payosErr) {
-      // Cleanup order on PayOS link generation failure to avoid stale pending orders
-      await db.prepare('DELETE FROM orders WHERE id = ?').bind(orderId).run();
-      await db.prepare('DELETE FROM order_items WHERE order_id = ?').bind(orderId).run();
+      // Mark order as failed in database instead of deleting to allow auditing/debugging
+      try {
+        await db.prepare(
+          `UPDATE orders
+           SET payment_status = 'failed', order_status = 'cancelled', updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`
+        ).bind(orderId).run();
+      } catch (dbErr) {
+        console.error('Failed to mark order as failed on PayOS link error:', dbErr);
+      }
 
       return new Response(
         JSON.stringify({
@@ -255,6 +290,19 @@ export async function onRequestPost(context) {
       // Log error but proceed since we already got the checkout URL and order is inserted
       console.error('Failed to update order with PayOS link info:', updateErr);
     }
+
+    // Log the created order (audit logging, safe from leaks)
+    const logData = {
+      event: 'CREATE_PAYMENT_LINK',
+      orderCode: orderCode,
+      orderId: orderId,
+      amount: serverTotal,
+      paymentStatus: 'pending',
+      ip: context.request.headers.get('CF-Connecting-IP') || 'unknown',
+      userAgent: context.request.headers.get('User-Agent') || 'unknown',
+      timestamp: new Date().toISOString()
+    };
+    console.log(JSON.stringify(logData));
 
     // 10. Return order details and redirect URL
     return new Response(

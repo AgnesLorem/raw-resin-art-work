@@ -12,6 +12,9 @@ export async function onRequest(context) {
   // Set security headers
   secureResponse.headers.set('X-Content-Type-Options', 'nosniff');
   secureResponse.headers.set('Cache-Control', 'no-store');
+  secureResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  secureResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  secureResponse.headers.set('X-Frame-Options', 'DENY');
   
   return secureResponse;
 }
