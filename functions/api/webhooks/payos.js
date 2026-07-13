@@ -40,13 +40,21 @@ export async function onRequestPost(context) {
 
     // Look up the order in the database
     const order = await db.prepare(
-      'SELECT id, total_vnd FROM orders WHERE order_code = ?'
+      'SELECT id, total_vnd, payment_status FROM orders WHERE order_code = ?'
     ).bind(orderCode).first();
 
     if (!order) {
       return new Response(
         JSON.stringify({ error: 'ORDER_NOT_FOUND', message: `Không tìm thấy đơn hàng với mã ${orderCode}` }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Webhook idempotency safeguard: If the order has already been marked as paid, return 200 immediately
+    if (order.payment_status === 'paid') {
+      return new Response(
+        JSON.stringify({ ok: true, message: 'Đơn hàng đã được xử lý thanh toán trước đó.' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
