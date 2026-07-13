@@ -40,3 +40,7 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_orders_order_code ON orders(order_code);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);

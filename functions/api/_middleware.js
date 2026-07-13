@@ -15,6 +15,7 @@ export async function onRequest(context) {
   secureResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   secureResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   secureResponse.headers.set('X-Frame-Options', 'DENY');
+  secureResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   
   return secureResponse;
 }
