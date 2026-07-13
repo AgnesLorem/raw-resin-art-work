@@ -54,7 +54,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    if (clientOrderCode && (typeof clientOrderCode !== 'number' || !Number.isInteger(clientOrderCode) || clientOrderCode <= 0)) {
+    if (clientOrderCode && (typeof clientOrderCode !== 'number' || !Number.isSafeInteger(clientOrderCode) || clientOrderCode <= 0)) {
       return new Response(
         JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Mã đơn hàng không hợp lệ.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }

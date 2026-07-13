@@ -13,7 +13,7 @@ export async function onRequestGet(context) {
     }
 
     const orderCode = Number(orderCodeStr);
-    if (isNaN(orderCode)) {
+    if (isNaN(orderCode) || !Number.isSafeInteger(orderCode) || orderCode <= 0) {
       return new Response(
         JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Mã đơn hàng không hợp lệ.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
