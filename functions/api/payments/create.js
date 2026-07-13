@@ -5,7 +5,7 @@ import { products } from '../../../src/data/products.js';
 export async function onRequestPost(context) {
   try {
     const requestBody = await context.request.json();
-    const { customer, items } = requestBody;
+    const { customer, items, orderCode: clientOrderCode } = requestBody;
 
     // 1. Validate customer info
     if (!customer || typeof customer.name !== 'string' || !customer.name.trim() ||
@@ -24,6 +24,13 @@ export async function onRequestPost(context) {
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    if (clientOrderCode && (typeof clientOrderCode !== 'number' || !Number.isInteger(clientOrderCode) || clientOrderCode <= 0)) {
+      return new Response(
+        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Mã đơn hàng không hợp lệ.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     // 2. Validate items
@@ -130,9 +137,27 @@ export async function onRequestPost(context) {
       );
     }
 
-    // 6. Generate a unique integer orderCode (must be positive integer, safe up to 9007199254740991)
-    // Date.now() gives ~13 digits, completely safe and unique.
-    const orderCode = Date.now();
+    // 6. Generate a unique integer orderCode
+    const orderCode = clientOrderCode || Date.now();
+
+    // Idempotency check: If this orderCode has already been processed and successfully created, return the existing checkoutUrl
+    try {
+      const existingOrder = await db.prepare(
+        'SELECT order_code, payos_checkout_url FROM orders WHERE order_code = ?'
+      ).bind(orderCode).first();
+
+      if (existingOrder && existingOrder.payos_checkout_url) {
+        return new Response(
+          JSON.stringify({
+            orderCode: existingOrder.order_code,
+            checkoutUrl: existingOrder.payos_checkout_url,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (checkErr) {
+      console.error('Idempotency check database error:', checkErr);
+    }
 
     // 7. Insert order and order items into database
     let orderId;

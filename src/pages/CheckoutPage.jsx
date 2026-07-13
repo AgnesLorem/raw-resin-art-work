@@ -100,6 +100,13 @@ Tổng cộng: ${formatVnd(cartTotal)}`
         };
       });
 
+      // Get or create unique orderCode for this checkout attempt to guarantee idempotency
+      let orderCode = sessionStorage.getItem('pendingOrderCode');
+      if (!orderCode) {
+        orderCode = Date.now().toString();
+        sessionStorage.setItem('pendingOrderCode', orderCode);
+      }
+
       const response = await fetch('/api/payments/create', {
         method: 'POST',
         headers: {
@@ -108,6 +115,7 @@ Tổng cộng: ${formatVnd(cartTotal)}`
         body: JSON.stringify({
           customer: customer,
           items: requestItems,
+          orderCode: Number(orderCode),
         }),
       })
 
@@ -119,6 +127,7 @@ Tổng cộng: ${formatVnd(cartTotal)}`
 
       // Success: clear cart and redirect to PayOS
       clearCart()
+      sessionStorage.removeItem('pendingOrderCode');
       // Dispatch cart updated event to refresh header/drawer
       window.dispatchEvent(new Event('cart-updated'))
       
@@ -126,11 +135,12 @@ Tổng cộng: ${formatVnd(cartTotal)}`
       window.location.href = data.checkoutUrl
     } catch (err) {
       console.error(err)
+      sessionStorage.removeItem('pendingOrderCode');
       setErrorMsg(
         err.message || 'Chức năng thanh toán trực tuyến đang chờ cấu hình. Bạn vẫn có thể đặt hàng qua email.'
       )
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
