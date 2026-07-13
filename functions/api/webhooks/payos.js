@@ -26,6 +26,14 @@ export async function onRequestPost(context) {
     }
 
     if (!isValidSignature) {
+      console.warn(
+        JSON.stringify({
+          event: 'PAYOS_WEBHOOK_INVALID_SIGNATURE',
+          cfRay: context.request.headers.get('cf-ray') || 'unknown',
+          ip: context.request.headers.get('CF-Connecting-IP') || 'unknown',
+          timestamp: new Date().toISOString()
+        })
+      );
       return new Response(
         JSON.stringify({ error: 'INVALID_SIGNATURE', message: 'Chữ ký webhook không hợp lệ.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -108,6 +116,7 @@ export async function onRequestPost(context) {
     // Log webhook call (audit logging, safe from leaks)
     const logData = {
       event: 'PAYOS_WEBHOOK',
+      cfRay: context.request.headers.get('cf-ray') || 'unknown',
       orderCode: orderCode,
       orderId: orderId,
       amount: amount,

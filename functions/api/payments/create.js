@@ -24,17 +24,17 @@ export async function onRequestPost(context) {
       );
     }
 
-    if (customer.phone.length > 30) {
+    if (customer.phone.length > 20) {
       return new Response(
-        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Số điện thoại quá dài (tối đa 30 ký tự).' }),
+        JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Số điện thoại quá dài (tối đa 20 ký tự).' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     if (customer.email) {
-      if (customer.email.length > 100) {
+      if (customer.email.length > 255) {
         return new Response(
-          JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Địa chỉ email quá dài (tối đa 100 ký tự).' }),
+          JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Địa chỉ email quá dài (tối đa 255 ký tự).' }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
@@ -294,6 +294,7 @@ export async function onRequestPost(context) {
     // Log the created order (audit logging, safe from leaks)
     const logData = {
       event: 'CREATE_PAYMENT_LINK',
+      cfRay: context.request.headers.get('cf-ray') || 'unknown',
       orderCode: orderCode,
       orderId: orderId,
       amount: serverTotal,

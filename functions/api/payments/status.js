@@ -49,6 +49,7 @@ export async function onRequestGet(context) {
     // Log status check (audit logging, safe from leaks)
     const logData = {
       event: 'CHECK_STATUS',
+      cfRay: context.request.headers.get('cf-ray') || 'unknown',
       orderCode: orderCode,
       amount: order.total_vnd,
       paymentStatus: order.payment_status,
