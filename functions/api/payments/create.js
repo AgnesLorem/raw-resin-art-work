@@ -8,11 +8,22 @@ export async function onRequestPost(context) {
     const { customer, items } = requestBody;
 
     // 1. Validate customer info
-    if (!customer || !customer.name || !customer.phone) {
+    if (!customer || typeof customer.name !== 'string' || !customer.name.trim() ||
+        typeof customer.phone !== 'string' || !customer.phone.trim()) {
       return new Response(
         JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Vui lòng điền đầy đủ họ tên và số điện thoại giao hàng.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (customer.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(customer.email)) {
+        return new Response(
+          JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Địa chỉ email không hợp lệ.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // 2. Validate items
@@ -24,7 +35,9 @@ export async function onRequestPost(context) {
     }
 
     // 3. Recalculate total pricing on the server to prevent client-side tampering
-    let calculatedTotal = 0;
+    let serverSubtotal = 0;
+    let serverOptionTotal = 0;
+    const serverShippingFee = 0; // Free shipping
     const validatedItems = [];
 
     for (const item of items) {
@@ -36,19 +49,50 @@ export async function onRequestPost(context) {
         );
       }
 
-      // Calculate options price delta
-      let optionsDelta = 0;
+      // Validate quantity
+      if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
+        return new Response(
+          JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Số lượng sản phẩm không hợp lệ.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate unitPrice (product base price)
+      if (typeof dbProduct.priceVnd !== 'number' || dbProduct.priceVnd <= 0) {
+        return new Response(
+          JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Giá sản phẩm không hợp lệ.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Calculate option price delta and validate options
+      let itemOptionDelta = 0;
       const itemOptions = item.selectedOptions || [];
       for (const opt of itemOptions) {
         const dbOpt = (dbProduct.options || []).find((o) => o.name === opt.name);
         if (dbOpt) {
-          optionsDelta += dbOpt.priceDeltaVnd;
+          if (typeof dbOpt.priceDeltaVnd !== 'number' || isNaN(dbOpt.priceDeltaVnd)) {
+            return new Response(
+              JSON.stringify({ error: 'VALIDATION_FAILED', message: 'Tùy chọn sản phẩm có giá không hợp lệ.' }),
+              { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
+          }
+          itemOptionDelta += dbOpt.priceDeltaVnd;
+        } else {
+          return new Response(
+            JSON.stringify({ error: 'VALIDATION_FAILED', message: `Tùy chọn "${opt.name}" không hợp lệ cho sản phẩm này.` }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
         }
       }
 
-      const unitPrice = dbProduct.priceVnd + optionsDelta;
-      const subtotal = unitPrice * item.quantity;
-      calculatedTotal += subtotal;
+      const productSubtotal = dbProduct.priceVnd * item.quantity;
+      const productOptionTotal = itemOptionDelta * item.quantity;
+
+      serverSubtotal += productSubtotal;
+      serverOptionTotal += productOptionTotal;
+
+      const unitPrice = dbProduct.priceVnd + itemOptionDelta;
 
       validatedItems.push({
         slug: dbProduct.slug,
@@ -59,6 +103,8 @@ export async function onRequestPost(context) {
         customizationNote: item.customizationNote || '',
       });
     }
+
+    const serverTotal = serverSubtotal + serverOptionTotal + serverShippingFee;
 
     // 4. Check Cloudflare D1 Database Binding
     const db = context.env.DB;
@@ -92,16 +138,17 @@ export async function onRequestPost(context) {
     let orderId;
     try {
       const orderInsertResult = await db.prepare(
-        `INSERT INTO orders (order_code, customer_name, customer_email, customer_phone, customer_address, subtotal_vnd, total_vnd, payment_status, order_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 'new')`
+        `INSERT INTO orders (order_code, customer_name, customer_email, customer_phone, customer_address, subtotal_vnd, shipping_fee_vnd, total_vnd, payment_status, order_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'new')`
       ).bind(
         orderCode,
-        customer.name,
-        customer.email || null,
-        customer.phone,
-        customer.address || null,
-        calculatedTotal,
-        calculatedTotal
+        customer.name.trim(),
+        customer.email ? customer.email.trim() : null,
+        customer.phone.trim(),
+        customer.address ? customer.address.trim() : null,
+        serverSubtotal + serverOptionTotal,
+        serverShippingFee,
+        serverTotal
       ).run();
 
       orderId = orderInsertResult.meta.last_row_id;
@@ -145,14 +192,14 @@ export async function onRequestPost(context) {
 
     const payosPayload = {
       orderCode: orderCode,
-      amount: calculatedTotal,
+      amount: serverTotal,
       description: description,
       cancelUrl: cancelUrl,
       returnUrl: returnUrl,
-      buyerName: customer.name,
-      buyerPhone: customer.phone,
-      buyerEmail: customer.email || undefined,
-      buyerAddress: customer.address || undefined,
+      buyerName: customer.name.trim(),
+      buyerPhone: customer.phone.trim(),
+      buyerEmail: customer.email ? customer.email.trim() : undefined,
+      buyerAddress: customer.address ? customer.address.trim() : undefined,
     };
 
     let payosData;
