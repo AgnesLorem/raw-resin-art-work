@@ -50,7 +50,7 @@ export default function ContactPage() {
                 <div className="info-label">Mạng xã hội</div>
                 <div className="info-value">Facebook · Instagram · TikTok</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <a href={siteConfig.social.facebook} className="social-pill">Facebook</a>
+                  <a href={siteConfig.social.facebook} target="_blank" rel="noopener noreferrer" className="social-pill">Facebook</a>
                   <a href={siteConfig.social.instagram} className="social-pill">Instagram</a>
                 </div>
               </div>
@@ -139,7 +139,7 @@ export default function ContactPage() {
                     <option value="">-- Chọn sản phẩm --</option>
                     <option value="Lót Ly Resin">Lót Ly Resin</option>
                     <option value="Móc Khóa Resin">Móc Khóa Resin</option>
-                    <option value="Thước Resin">Thước Resin</option>
+                    <option value="Bookmark Resin">Bookmark Resin</option>
                     <option value="Khác">Khác / Tùy chỉnh riêng</option>
                   </select>
                 </div>

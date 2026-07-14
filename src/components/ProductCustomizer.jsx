@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatVnd, calculateProductTotal } from '../services/priceService.js'
+import { siteConfig } from '../data/siteContent.js'
 
 export default function ProductCustomizer({ product, onAddToCart }) {
   const [selectedOptions, setSelectedOptions] = useState([])
@@ -79,7 +80,7 @@ export default function ProductCustomizer({ product, onAddToCart }) {
           {added ? '✓ Đã thêm!' : 'Thêm vào giỏ'}
         </button>
         <a
-          href={`mailto:tainh.ce190387@gmail.com?subject=Đặt hàng: ${product.name}&body=Mình muốn đặt: ${product.name}%0ASố lượng: ${quantity}%0ATùy chọn: ${selectedOptions.join(', ') || 'Không có'}`}
+          href={`mailto:${siteConfig.email}?subject=Đặt hàng: ${product.name}&body=Mình muốn đặt: ${product.name}%0ASố lượng: ${quantity}%0ATùy chọn: ${selectedOptions.join(', ') || 'Không có'}`}
           className="btn-sage"
           id="order-custom-btn"
         >

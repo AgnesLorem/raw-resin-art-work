@@ -5,7 +5,7 @@ const CATEGORY_FILTERS = [
   { id: 'all', label: 'Tất cả' },
   { id: 'lot-ly', label: 'Lót Ly' },
   { id: 'moc-khoa', label: 'Móc Khóa' },
-  { id: 'thuoc', label: 'Thước' },
+  { id: 'bookmark', label: 'Bookmark' },
 ]
 
 const GALLERY_COLORS = [

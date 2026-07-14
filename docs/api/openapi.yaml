@@ -1,0 +1,206 @@
+openapi: 3.0.0
+info:
+  title: Resin Art Work API
+  description: API contract for the Cloudflare Pages + Workers + PayOS checkout integration.
+  version: 1.0.0
+servers:
+  - url: https://resinartworkshop.id.vn/api/v1
+    description: Production environment
+  - url: https://raw-resin-art-work.pages.dev/api/v1
+    description: Preview environment
+paths:
+  /payments/create:
+    post:
+      summary: Create checkout session and PayOS payment link
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer
+                - items
+              properties:
+                customer:
+                  type: object
+                  required:
+                    - name
+                    - phone
+                  properties:
+                    name:
+                      type: string
+                      maxLength: 100
+                      example: "Nguyễn Văn A"
+                    phone:
+                      type: string
+                      maxLength: 20
+                      example: "0901234567"
+                    email:
+                      type: string
+                      format: email
+                      maxLength: 255
+                      example: "customer@example.com"
+                    address:
+                      type: string
+                      maxLength: 500
+                      example: "123 Đường Láng, Hà Nội"
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - slug
+                      - name
+                      - quantity
+                    properties:
+                      slug:
+                        type: string
+                        example: "tranh-resin-song-bien"
+                      name:
+                        type: string
+                        example: "Tranh Resin Sóng Biển"
+                      quantity:
+                        type: integer
+                        minimum: 1
+                        example: 2
+                      selectedOptions:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - name
+                          properties:
+                            name:
+                              type: string
+                              example: "Kích thước lớn"
+                      customizationNote:
+                        type: string
+                        maxLength: 500
+                        example: "Ghi chữ Nguyễn Văn A ở góc tranh"
+                orderCode:
+                  type: integer
+                  example: 1720849200
+      responses:
+        '200':
+          description: Payment link created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderCode:
+                    type: integer
+                  checkoutUrl:
+                    type: string
+                    format: uri
+        '400':
+          description: Validation error or product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests (Rate Limited)
+        '502':
+          description: PayOS API integration failure
+        '503':
+          description: Checkout disabled (Maintenance mode)
+  /payments/status:
+    get:
+      summary: Fetch order status
+      operationId: getPaymentStatus
+      parameters:
+        - name: orderCode
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 1720849200
+      responses:
+        '200':
+          description: Order status returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderCode:
+                    type: integer
+                  paymentStatus:
+                    type: string
+                    enum: [pending, paid, failed, cancelled, expired]
+                  orderStatus:
+                    type: string
+                  totalVnd:
+                    type: integer
+        '400':
+          description: Invalid orderCode parameter
+        '404':
+          description: Order not found
+        '500':
+          description: Database error
+  /webhooks/payos:
+    post:
+      summary: Webhook receiver for PayOS payment updates
+      operationId: receiveWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - desc
+                - data
+                - signature
+              properties:
+                code:
+                  type: string
+                  example: "00"
+                desc:
+                  type: string
+                  example: "success"
+                data:
+                  type: object
+                  required:
+                    - orderCode
+                    - amount
+                    - paymentLinkId
+                  properties:
+                    orderCode:
+                      type: integer
+                    amount:
+                      type: integer
+                    paymentLinkId:
+                      type: string
+                signature:
+                  type: string
+                  example: "557a1b...checksum"
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid signature check or malformed body
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "VALIDATION_FAILED"
+        message:
+          type: string
+          example: "Địa chỉ email không hợp lệ."

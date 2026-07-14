@@ -55,7 +55,7 @@ export default function Hero() {
           </div>
           <div className="hero-card hero-card--sm hero-card--bottom">
             <ResinIllustrationSm color="#7a9e7e" />
-            <div className="hero-card-label-sm">Thước Resin</div>
+            <div className="hero-card-label-sm">Bookmark Resin</div>
           </div>
         </div>
       </div>

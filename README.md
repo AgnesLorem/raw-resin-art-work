@@ -168,7 +168,7 @@ Chỉnh sửa `src/data/products.js` — thêm một object vào array `products
 
 ## Contact
 
-Email: [tainh.ce190387@gmail.com](mailto:tainh.ce190387@gmail.com)
+Email: [nghiathce191122@gmail.com](mailto:nghiathce191122@gmail.com)
 
 *(Lưu ý: Các liên kết mạng xã hội trong `src/data/siteContent.js` hiện tại đang là `#`, hãy cập nhật link thật khi có)*
 

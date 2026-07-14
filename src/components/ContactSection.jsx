@@ -25,7 +25,7 @@ export default function ContactSection() {
                   <div className="contact-card-value">{siteConfig.email}</div>
                 </div>
               </a>
-              <a href={siteConfig.social.facebook} className="contact-card" id="contact-fb-link">
+              <a href={siteConfig.social.facebook} target="_blank" rel="noopener noreferrer" className="contact-card" id="contact-fb-link">
                 <div className="contact-card-icon">💬</div>
                 <div>
                   <div className="contact-card-label">Facebook</div>
