@@ -76,10 +76,10 @@ export async function onRequestPost(context) {
     const orderId = order.id;
 
     if (isSuccess) {
-      // Update order status to paid
+      // Update order status to paid and confirmed
       await db.prepare(
         `UPDATE orders
-         SET payment_status = 'paid', order_status = 'paid', updated_at = CURRENT_TIMESTAMP
+         SET payment_status = 'paid', order_status = 'confirmed', updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`
       ).bind(orderId).run();
 

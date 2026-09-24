@@ -4,8 +4,23 @@ import { products } from '../../../src/data/products.js';
 
 export async function onRequestPost(context) {
   try {
-    const requestBody = await context.request.json();
-    const { customer, items, orderCode: clientOrderCode } = requestBody;
+    const requestBody = await context.request.json().catch(() => ({}));
+    const {
+      customer,
+      items,
+      orderCode: clientOrderCode,
+      paymentMethod: rawPaymentMethod = 'payos',
+      shippingRegion: rawShippingRegion = 'can_tho',
+      voucherCode = '',
+    } = requestBody;
+
+    // Validate paymentMethod
+    const validMethods = ['payos', 'cod', 'bank_transfer'];
+    const paymentMethod = validMethods.includes(rawPaymentMethod) ? rawPaymentMethod : 'payos';
+
+    // Validate shippingRegion
+    const validRegions = ['can_tho', 'nationwide'];
+    const shippingRegion = validRegions.includes(rawShippingRegion) ? rawShippingRegion : 'can_tho';
 
     // 1. Validate customer info
     if (!customer || typeof customer.name !== 'string' || !customer.name.trim() ||
@@ -72,7 +87,6 @@ export async function onRequestPost(context) {
     // 3. Recalculate total pricing on the server to prevent client-side tampering
     let serverSubtotal = 0;
     let serverOptionTotal = 0;
-    const serverShippingFee = 0; // Free shipping
     const validatedItems = [];
 
     for (const item of items) {
@@ -135,11 +149,29 @@ export async function onRequestPost(context) {
         quantity: item.quantity,
         unitPriceVnd: unitPrice,
         selectedOptions: itemOptions,
-        customizationNote: item.customizationNote || '',
+        customizationNote: typeof item.customizationNote === 'string' ? item.customizationNote.trim().slice(0, 500) : '',
       });
     }
 
-    const serverTotal = serverSubtotal + serverOptionTotal + serverShippingFee;
+    const serverBaseSubtotal = serverSubtotal + serverOptionTotal;
+
+    // Server-authoritative shipping fee:
+    // Can Tho: 15,000 VND; Nationwide: 30,000 VND; Free shipping for orders >= 250,000 VND
+    let serverShippingFee = serverBaseSubtotal >= 250000 ? 0 : (shippingRegion === 'can_tho' ? 15000 : 30000);
+
+    // Server-authoritative voucher validation
+    let serverDiscount = 0;
+    const cleanVoucher = typeof voucherCode === 'string' ? voucherCode.trim().toUpperCase() : '';
+
+    if (cleanVoucher === 'RAWWELCOME') {
+      serverDiscount = Math.round((serverBaseSubtotal * 10) / 100);
+    } else if (cleanVoucher === 'FREESHIP') {
+      serverDiscount = serverShippingFee;
+    } else if (cleanVoucher === 'RESINLOVE') {
+      serverDiscount = Math.min(20000, serverBaseSubtotal);
+    }
+
+    const serverTotal = Math.max(0, serverBaseSubtotal + serverShippingFee - serverDiscount);
 
     // 4. Check Cloudflare D1 Database Binding
     const db = context.env.DB;
@@ -147,41 +179,50 @@ export async function onRequestPost(context) {
       return new Response(
         JSON.stringify({
           error: 'DATABASE_BINDING_MISSING',
-          message: 'Chức năng thanh toán trực tuyến đang chờ cấu hình (thiếu DB binding). Bạn vẫn có thể đặt hàng qua email.'
+          message: 'Chức năng thanh toán đang chờ cấu hình (thiếu DB binding). Bạn vẫn có thể đặt hàng qua email.'
         }),
         { status: 503, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // 5. Check PayOS Environment Secrets
-    const payosConfigured = context.env.PAYOS_CLIENT_ID && context.env.PAYOS_API_KEY && context.env.PAYOS_CHECKSUM_KEY;
-    if (!payosConfigured) {
-      return new Response(
-        JSON.stringify({
-          error: 'PAYOS_CONFIG_MISSING',
-          message: 'Chức năng thanh toán trực tuyến đang chờ cấu hình (thiếu PayOS secrets). Bạn vẫn có thể đặt hàng qua email.'
-        }),
-        { status: 503, headers: { 'Content-Type': 'application/json' } }
-      );
+    // 5. Check PayOS Environment Secrets only if paymentMethod is payos
+    if (paymentMethod === 'payos') {
+      const payosConfigured = context.env.PAYOS_CLIENT_ID && context.env.PAYOS_API_KEY && context.env.PAYOS_CHECKSUM_KEY;
+      if (!payosConfigured) {
+        return new Response(
+          JSON.stringify({
+            error: 'PAYOS_CONFIG_MISSING',
+            message: 'Cổng thanh toán PayOS đang chờ cấu hình. Bạn có thể chọn Chuyển khoản VietQR hoặc Thanh toán khi nhận hàng (COD).'
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // 6. Generate a unique integer orderCode
     const orderCode = clientOrderCode || Date.now();
 
-    // Idempotency check: If this orderCode has already been processed and successfully created, return the existing checkoutUrl
+    // Idempotency check: If this orderCode has already been processed
     try {
       const existingOrder = await db.prepare(
-        'SELECT order_code, payos_checkout_url FROM orders WHERE order_code = ?'
+        'SELECT order_code, payos_checkout_url, payment_method FROM orders WHERE order_code = ?'
       ).bind(orderCode).first();
 
-      if (existingOrder && existingOrder.payos_checkout_url) {
-        return new Response(
-          JSON.stringify({
-            orderCode: existingOrder.order_code,
-            checkoutUrl: existingOrder.payos_checkout_url,
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
+      if (existingOrder) {
+        const redirectUrl = existingOrder.payment_method === 'payos'
+          ? existingOrder.payos_checkout_url
+          : `/thanh-toan-thanh-cong?orderCode=${existingOrder.order_code}&method=${existingOrder.payment_method}`;
+
+        if (redirectUrl) {
+          return new Response(
+            JSON.stringify({
+              orderCode: existingOrder.order_code,
+              checkoutUrl: redirectUrl,
+              paymentMethod: existingOrder.payment_method,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       }
     } catch (checkErr) {
       console.error('Idempotency check database error:', checkErr);
@@ -191,17 +232,23 @@ export async function onRequestPost(context) {
     let orderId;
     try {
       const orderInsertResult = await db.prepare(
-        `INSERT INTO orders (order_code, customer_name, customer_email, customer_phone, customer_address, subtotal_vnd, shipping_fee_vnd, total_vnd, payment_status, order_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'new')`
+        `INSERT INTO orders (
+           order_code, customer_name, customer_email, customer_phone, customer_address,
+           subtotal_vnd, shipping_fee_vnd, discount_vnd, total_vnd,
+           payment_method, payment_status, order_status, shipping_region
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'new', ?)`
       ).bind(
         orderCode,
         customer.name.trim(),
         customer.email ? customer.email.trim() : null,
         customer.phone.trim(),
         customer.address ? customer.address.trim() : null,
-        serverSubtotal + serverOptionTotal,
+        serverBaseSubtotal,
         serverShippingFee,
-        serverTotal
+        serverDiscount,
+        serverTotal,
+        paymentMethod,
+        shippingRegion
       ).run();
 
       orderId = orderInsertResult.meta.last_row_id;
@@ -235,9 +282,23 @@ export async function onRequestPost(context) {
       );
     }
 
-    // 8. Call PayOS API to generate payment link
+    // 8. If non-PayOS (COD or Bank Transfer), redirect directly to success page
+    if (paymentMethod !== 'payos') {
+      const successUrl = `/thanh-toan-thanh-cong?orderCode=${orderCode}&method=${paymentMethod}`;
+
+      return new Response(
+        JSON.stringify({
+          orderCode: orderCode,
+          checkoutUrl: successUrl,
+          paymentMethod: paymentMethod,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 9. Call PayOS API to generate payment link
     const siteUrl = context.env.SITE_URL || 'https://raw-resin-art-work.pages.dev';
-    const returnUrl = `${siteUrl}/thanh-toan-thanh-cong?orderCode=${orderCode}`;
+    const returnUrl = `${siteUrl}/thanh-toan-thanh-cong?orderCode=${orderCode}&method=payos`;
     const cancelUrl = `${siteUrl}/thanh-toan-bi-huy?orderCode=${orderCode}`;
 
     // Description must be alphanumeric without special characters, max 25 chars
@@ -259,7 +320,6 @@ export async function onRequestPost(context) {
     try {
       payosData = await createPaymentLink(context.env, payosPayload);
     } catch (payosErr) {
-      // Mark order as failed in database instead of deleting to allow auditing/debugging
       try {
         await db.prepare(
           `UPDATE orders
@@ -273,13 +333,13 @@ export async function onRequestPost(context) {
       return new Response(
         JSON.stringify({
           error: 'PAYOS_API_ERROR',
-          message: `Không thể tạo link thanh toán từ PayOS: ${payosErr.message}. Vui lòng thử lại hoặc sử dụng Đặt qua email.`
+          message: `Không thể tạo link thanh toán từ PayOS: ${payosErr.message}. Vui lòng thử Chuyển khoản VietQR hoặc Thanh toán khi nhận hàng (COD).`
         }),
         { status: 502, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // 9. Update order with PayOS link details
+    // 10. Update order with PayOS link details
     try {
       await db.prepare(
         `UPDATE orders
@@ -287,29 +347,14 @@ export async function onRequestPost(context) {
          WHERE id = ?`
       ).bind(payosData.paymentLinkId, payosData.checkoutUrl, orderId).run();
     } catch (updateErr) {
-      // Log error but proceed since we already got the checkout URL and order is inserted
       console.error('Failed to update order with PayOS link info:', updateErr);
     }
 
-    // Log the created order (audit logging, safe from leaks)
-    const logData = {
-      event: 'CREATE_PAYMENT_LINK',
-      cfRay: context.request.headers.get('cf-ray') || 'unknown',
-      orderCode: orderCode,
-      orderId: orderId,
-      amount: serverTotal,
-      paymentStatus: 'pending',
-      ip: context.request.headers.get('CF-Connecting-IP') || 'unknown',
-      userAgent: context.request.headers.get('User-Agent') || 'unknown',
-      timestamp: new Date().toISOString()
-    };
-    console.log(JSON.stringify(logData));
-
-    // 10. Return order details and redirect URL
     return new Response(
       JSON.stringify({
         orderCode: orderCode,
         checkoutUrl: payosData.checkoutUrl,
+        paymentMethod: 'payos',
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );

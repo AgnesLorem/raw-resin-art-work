@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 const NAV_LINKS = [
   { to: '/', label: 'Trang chủ' },
   { to: '/san-pham', label: 'Sản phẩm' },
+  { to: '/tra-cuu-don-hang', label: 'Tra cứu đơn' },
   { to: '/thu-vien', label: 'Thư viện' },
   { to: '/lien-he', label: 'Liên hệ' },
 ]

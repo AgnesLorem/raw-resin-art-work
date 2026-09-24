@@ -13,6 +13,9 @@
   --sage: #7a9e7e;
   --sage-light: #a8c5ac;
   --sage-dark: #527055;
+  --forest: #2d5a43;
+  --forest-light: #3d7a5b;
+  --amber: #d48b47;
   --warm-brown: #8b6f5e;
   --text-dark: #2d2320;
   --text-mid: #5a4a42;
@@ -50,9 +53,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-img {
+img, video {
   max-width: 100%;
   display: block;
+  outline: 1px solid rgba(0, 0, 0, 0.08);
+  outline-offset: -1px;
 }
 
 a {
@@ -76,6 +81,20 @@ h1, h2, h3, h4, h5 {
   font-family: var(--font-serif);
   line-height: 1.25;
   color: var(--text-dark);
+  text-wrap: balance;
+  letter-spacing: -0.015em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.tabular-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* Layout utilities */
@@ -112,7 +131,7 @@ h1, h2, h3, h4, h5 {
 }
 
 .btn-primary:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 .btn-secondary {
@@ -133,6 +152,10 @@ h1, h2, h3, h4, h5 {
   background: var(--burgundy);
   color: var(--white);
   transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
 }
 
 .btn-sage {

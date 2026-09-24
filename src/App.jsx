@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
@@ -11,11 +11,16 @@ import ContactPage from './pages/ContactPage.jsx'
 import CheckoutPage from './pages/CheckoutPage.jsx'
 import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx'
 import PaymentCancelPage from './pages/PaymentCancelPage.jsx'
+import OrderLookupPage from './pages/OrderLookupPage.jsx'
+import AdminLoginPage from './pages/AdminLoginPage.jsx'
+import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
 import { getCart } from './services/cartService.js'
 
-export default function App() {
+function AppContent() {
   const [cartOpen, setCartOpen] = useState(false)
   const [cartItems, setCartItems] = useState(getCart())
+  const location = useLocation()
+  const isAdmin = location.pathname.startsWith('/admin')
 
   const refreshCart = () => setCartItems(getCart())
 
@@ -26,8 +31,8 @@ export default function App() {
   }, [])
 
   return (
-    <BrowserRouter>
-      <Header cartCount={cartItems.length} onCartOpen={() => setCartOpen(true)} />
+    <>
+      {!isAdmin && <Header cartCount={cartItems.length} onCartOpen={() => setCartOpen(true)} />}
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -38,16 +43,29 @@ export default function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccessPage />} />
           <Route path="/thanh-toan-bi-huy" element={<PaymentCancelPage />} />
+          <Route path="/tra-cuu-don-hang" element={<OrderLookupPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <Footer />
-      <CartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        cartItems={cartItems}
-        onCartUpdate={refreshCart}
-      />
+      {!isAdmin && <Footer />}
+      {!isAdmin && (
+        <CartDrawer
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          cartItems={cartItems}
+          onCartUpdate={refreshCart}
+        />
+      )}
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   )
 }
