@@ -204,21 +204,29 @@ export async function onRequestPost(context) {
 
     // Idempotency check: If this orderCode has already been processed
     try {
-      const existingOrder = await db.prepare(
-        'SELECT order_code, payos_checkout_url, payment_method FROM orders WHERE order_code = ?'
-      ).bind(orderCode).first();
+      let existingOrder;
+      try {
+        existingOrder = await db.prepare(
+          'SELECT order_code, payos_checkout_url, payment_method FROM orders WHERE order_code = ?'
+        ).bind(orderCode).first();
+      } catch {
+        existingOrder = await db.prepare(
+          'SELECT order_code, payos_checkout_url FROM orders WHERE order_code = ?'
+        ).bind(orderCode).first().catch(() => null);
+      }
 
       if (existingOrder) {
-        const redirectUrl = existingOrder.payment_method === 'payos'
+        const pMethod = existingOrder.payment_method || 'payos';
+        const redirectUrl = pMethod === 'payos'
           ? existingOrder.payos_checkout_url
-          : `/thanh-toan-thanh-cong?orderCode=${existingOrder.order_code}&method=${existingOrder.payment_method}`;
+          : `/thanh-toan-thanh-cong?orderCode=${existingOrder.order_code}&method=${pMethod}`;
 
         if (redirectUrl) {
           return new Response(
             JSON.stringify({
               orderCode: existingOrder.order_code,
               checkoutUrl: redirectUrl,
-              paymentMethod: existingOrder.payment_method,
+              paymentMethod: pMethod,
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
           );
@@ -231,25 +239,57 @@ export async function onRequestPost(context) {
     // 7. Insert order and order items into database
     let orderId;
     try {
-      const orderInsertResult = await db.prepare(
-        `INSERT INTO orders (
-           order_code, customer_name, customer_email, customer_phone, customer_address,
-           subtotal_vnd, shipping_fee_vnd, discount_vnd, total_vnd,
-           payment_method, payment_status, order_status, shipping_region
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'new', ?)`
-      ).bind(
-        orderCode,
-        customer.name.trim(),
-        customer.email ? customer.email.trim() : null,
-        customer.phone.trim(),
-        customer.address ? customer.address.trim() : null,
-        serverBaseSubtotal,
-        serverShippingFee,
-        serverDiscount,
-        serverTotal,
-        paymentMethod,
-        shippingRegion
-      ).run();
+      let orderInsertResult;
+      try {
+        orderInsertResult = await db.prepare(
+          `INSERT INTO orders (
+             order_code, customer_name, customer_email, customer_phone, customer_address,
+             subtotal_vnd, shipping_fee_vnd, discount_vnd, total_vnd,
+             payment_method, payment_status, order_status, shipping_region
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'new', ?)`
+        ).bind(
+          orderCode,
+          customer.name.trim(),
+          customer.email ? customer.email.trim() : null,
+          customer.phone.trim(),
+          customer.address ? customer.address.trim() : null,
+          serverBaseSubtotal,
+          serverShippingFee,
+          serverDiscount,
+          serverTotal,
+          paymentMethod,
+          shippingRegion
+        ).run();
+      } catch (insertErr) {
+        if (insertErr.message && (insertErr.message.includes('no such column') || insertErr.message.includes('has no column'))) {
+          // Auto-apply missing migration 0002 columns to Cloudflare D1
+          await db.prepare("ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'payos'").run().catch(() => {});
+          await db.prepare("ALTER TABLE orders ADD COLUMN shipping_region TEXT DEFAULT 'can_tho'").run().catch(() => {});
+          await db.prepare("ALTER TABLE order_items ADD COLUMN customization_note TEXT").run().catch(() => {});
+
+          orderInsertResult = await db.prepare(
+            `INSERT INTO orders (
+               order_code, customer_name, customer_email, customer_phone, customer_address,
+               subtotal_vnd, shipping_fee_vnd, discount_vnd, total_vnd,
+               payment_method, payment_status, order_status, shipping_region
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'new', ?)`
+          ).bind(
+            orderCode,
+            customer.name.trim(),
+            customer.email ? customer.email.trim() : null,
+            customer.phone.trim(),
+            customer.address ? customer.address.trim() : null,
+            serverBaseSubtotal,
+            serverShippingFee,
+            serverDiscount,
+            serverTotal,
+            paymentMethod,
+            shippingRegion
+          ).run();
+        } else {
+          throw insertErr;
+        }
+      }
 
       orderId = orderInsertResult.meta.last_row_id;
 
@@ -273,7 +313,16 @@ export async function onRequestPost(context) {
       }
 
       if (statements.length > 0) {
-        await db.batch(statements);
+        try {
+          await db.batch(statements);
+        } catch (itemErr) {
+          if (itemErr.message && itemErr.message.includes('customization_note')) {
+            await db.prepare("ALTER TABLE order_items ADD COLUMN customization_note TEXT").run().catch(() => {});
+            await db.batch(statements);
+          } else {
+            throw itemErr;
+          }
+        }
       }
     } catch (dbErr) {
       return new Response(
