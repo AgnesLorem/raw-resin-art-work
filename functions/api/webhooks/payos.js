@@ -6,7 +6,7 @@ export async function onRequestPost(context) {
     const requestBody = await context.request.json();
 
     // 1. Verify Cloudflare D1 Database Binding
-    const db = context.env.DB || context.env.raw_db || context.env.RAW_DB || context.env.d1 || context.env.D1;
+    const db = context.env.DB || context.env.db || context.env.raw_db || context.env.RAW_DB || context.env.d1 || context.env.D1;
     if (!db) {
       return new Response(
         JSON.stringify({ error: 'DATABASE_BINDING_MISSING', message: 'DB binding is missing on Cloudflare' }),

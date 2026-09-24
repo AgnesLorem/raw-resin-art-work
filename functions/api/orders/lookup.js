@@ -1,7 +1,7 @@
 // functions/api/orders/lookup.js
 
 export async function onRequestGet(context) {
-  const db = context.env.DB || context.env.raw_db || context.env.RAW_DB || context.env.d1 || context.env.D1;
+  const db = context.env.DB || context.env.db || context.env.raw_db || context.env.RAW_DB || context.env.d1 || context.env.D1;
   if (!db) {
     return new Response(JSON.stringify({ error: 'DATABASE_UNAVAILABLE', message: 'Hệ thống tra cứu đang bận.' }), {
       status: 503,
