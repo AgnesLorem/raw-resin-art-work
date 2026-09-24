@@ -21,7 +21,7 @@ export async function onRequestGet(context) {
     }
 
     // Verify Cloudflare D1 Database Binding
-    const db = context.env.DB;
+    const db = context.env.DB || context.env.raw_db || context.env.RAW_DB || context.env.d1 || context.env.D1;
     if (!db) {
       return new Response(
         JSON.stringify({
